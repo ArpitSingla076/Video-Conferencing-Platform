@@ -248,26 +248,38 @@ export default function VideoMeetComponent() {
     }
 
     let gotMessageFromServer = (fromId, message) => {
-        var signal = JSON.parse(message)
+    var signal = JSON.parse(message);
 
-        if (fromId !== socketIdRef.current) {
-            if (signal.sdp) {
-                connections[fromId].setRemoteDescription(new RTCSessionDescription(signal.sdp)).then(() => {
-                    if (signal.sdp.type === 'offer') {
-                        connections[fromId].createAnswer().then((description) => {
-                            connections[fromId].setLocalDescription(description).then(() => {
-                                socketRef.current.emit('signal', fromId, JSON.stringify({ 'sdp': connections[fromId].localDescription }))
-                            }).catch(e => console.log(e))
-                        }).catch(e => console.log(e))
-                    }
-                }).catch(e => console.log(e))
+    // FIX: Initialize the connection if it doesn't exist yet
+    if (!connections[fromId]) {
+        connections[fromId] = new RTCPeerConnection(peerConfigConnections);
+        
+        // You MUST also set up the icecandidate handler here if you create it on the fly
+        connections[fromId].onicecandidate = function (event) {
+            if (event.candidate != null) {
+                socketRef.current.emit('signal', fromId, JSON.stringify({ 'ice': event.candidate }));
             }
+        };
+    }
 
-            if (signal.ice) {
-                connections[fromId].addIceCandidate(new RTCIceCandidate(signal.ice)).catch(e => console.log(e))
-            }
+    if (fromId !== socketIdRef.current) {
+        if (signal.sdp) {
+            connections[fromId].setRemoteDescription(new RTCSessionDescription(signal.sdp)).then(() => {
+                if (signal.sdp.type === 'offer') {
+                    connections[fromId].createAnswer().then((description) => {
+                        connections[fromId].setLocalDescription(description).then(() => {
+                            socketRef.current.emit('signal', fromId, JSON.stringify({ 'sdp': connections[fromId].localDescription }));
+                        }).catch(e => console.log(e));
+                    }).catch(e => console.log(e));
+                }
+            }).catch(e => console.log(e));
+        }
+
+        if (signal.ice) {
+            connections[fromId].addIceCandidate(new RTCIceCandidate(signal.ice)).catch(e => console.log(e));
         }
     }
+}
 
 
 
