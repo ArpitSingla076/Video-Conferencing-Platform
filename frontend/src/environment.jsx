@@ -1,6 +1,5 @@
-// Use Vite's import.meta.env.MODE instead of process.env
 const server = import.meta.env.MODE === "production" 
-    ? "https://video-conferencing-platform.onrender.com" 
+    ? "https://video-conferencing-platform-43qo.onrender.com" // Ensure this matches the log exactly
     : "http://localhost:8000";
 
 export default server;
